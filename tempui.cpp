@@ -219,9 +219,28 @@ UILabel::UILabel(std::string text, int color, UISize sizing) : UIElement(color)
 void UILabel::draw()
 {
   //TODO add size checking
-  attron(COLOR_PAIR(color));
-  mvprintw(pos.second,pos.first,text.c_str());
-  attroff(COLOR_PAIR(color));
+  if(redraw)
+  {
+    attron(COLOR_PAIR(color));
+    mvprintw(pos.second,pos.first,text.c_str());
+    attroff(COLOR_PAIR(color));
+    this->redraw = false;
+  }
+}
+
+void UILabel::settext(std::string str)
+{
+  // only redraw label if the text has changed
+  if(text != str)
+  {
+    this->redraw=true;
+    this->text = str;
+  }
+}
+
+std::string UILabel::gettext()
+{
+  return this->text;
 }
 
 std::pair<uint16_t,uint16_t> UILabel::getsize()

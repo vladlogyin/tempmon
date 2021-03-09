@@ -334,17 +334,18 @@ void handleClientDisconnect(std::shared_ptr<Client> c)
   // look for div belonging to client
   for(int i=0; i < rootdiv->elements.size(); i++)
   {
-    if(((UILabel*)(((UIDiv*)(rootdiv->elements[i]))->elements[0]))->text==c->name)
-    {
-      rootdiv->elements.erase(rootdiv->elements.begin()+i);
-      break;
-    }
+    //TODO broken
+//     if(((UILabel*)(((UIDiv*)(rootdiv->elements[i]))->elements[0]))->text==c->name)
+//     {
+//       rootdiv->elements.erase(rootdiv->elements.begin()+i);
+//       break;
+//     }
   }
 }
 bool updateturn=false;
 void handleClientUpdate(std::shared_ptr<Client> c)
 {
-  label->text = std::to_string(c->propertyvalues[0]);
+  label->settext(std::to_string(c->propertyvalues[0]));
   label->color = (updateturn = !updateturn)?1:2;
   rootdiv->draw();
   refresh();

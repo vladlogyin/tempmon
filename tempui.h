@@ -30,7 +30,7 @@ public:
   int color;
   UISize sizing;
   // Flag used to determine whether to redraw whole element or just to update it
-  bool invalidated = true;
+  bool redraw = true;
   virtual void draw(){};
   // Dummy getsize function used for debugging
   virtual std::pair<uint16_t, uint16_t> getsize(){return {4,4};};
@@ -82,9 +82,12 @@ public:
   //TODO have label printed in center of alloted space when Fill or Set sizing is used
   UILabel(std::string, int, UISize = Wrap);
   
-  std::string text;
+  void settext(std::string);
+  std::string gettext(void);
   
   void draw() override;
   std::pair<uint16_t, uint16_t> getsize() override;
   
+private:
+    std::string text;
 };
