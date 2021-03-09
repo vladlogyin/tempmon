@@ -21,22 +21,26 @@ UIBox::UIBox(int col) : UIElement(col){}
 
 void UIBox::draw()
 {
-  attron(COLOR_PAIR(color));
-  for(uint16_t y = pos.second; y < pos.second+size.second;y++)
+  if(redraw)
   {
-    for(uint16_t x = pos.first; x < pos.first+size.first;x++)
+    attron(COLOR_PAIR(color));
+    for(uint16_t y = pos.second; y < pos.second+size.second;y++)
     {
-      if(x==pos.first||x==pos.first+size.first-1||y==pos.second||y==pos.second+size.second-1)
+      for(uint16_t x = pos.first; x < pos.first+size.first;x++)
       {
-        mvaddch(y,x,'#');
-      }
-      else
-      {
-       mvaddch(y,x,' '); 
+        if(x==pos.first||x==pos.first+size.first-1||y==pos.second||y==pos.second+size.second-1)
+        {
+          mvaddch(y,x,'#');
+        }
+        else
+        {
+        mvaddch(y,x,' '); 
+        }
       }
     }
+    attroff(COLOR_PAIR(color));
+    redraw = false;
   }
-  attroff(COLOR_PAIR(color));
 }
 
 UIFrame::UIFrame(UIElement* e,int col) : UIElement(col)
@@ -46,24 +50,29 @@ UIFrame::UIFrame(UIElement* e,int col) : UIElement(col)
 
 void UIFrame::draw()
 {
-  attron(COLOR_PAIR(color));
-  for(uint16_t y = pos.second; y < pos.second+size.second;y++)
+  if(redraw)
   {
-    for(uint16_t x = pos.first; x < pos.first+size.first;x++)
+    attron(COLOR_PAIR(color));
+    for(uint16_t y = pos.second; y < pos.second+size.second;y++)
     {
-      if(x==pos.first||x==pos.first+size.first-1||y==pos.second||y==pos.second+size.second-1)
+      for(uint16_t x = pos.first; x < pos.first+size.first;x++)
       {
-        mvaddch(y,x,'#');
-      }
-      else
-      {
-       mvaddch(y,x,' '); 
+        if(x==pos.first||x==pos.first+size.first-1||y==pos.second||y==pos.second+size.second-1)
+        {
+          mvaddch(y,x,'#');
+        }
+        else
+        {
+        mvaddch(y,x,' '); 
+        }
       }
     }
+    attroff(COLOR_PAIR(color));
+    this->element->pos={pos.first+1,pos.second+1};
+    this->element->size={size.first-2,size.second-2};
+    this->element->redraw = true;
+    redraw = false;
   }
-  attroff(COLOR_PAIR(color));
-  this->element->pos={pos.first+1,pos.second+1};
-  this->element->size={size.first-2,size.second-2};
   this->element->draw();
 }
 
@@ -90,81 +99,93 @@ void UIDiv::draw()
   // Check number of elements in div
   uint16_t count;
   if(!(count = elements.size()))
-  return; 
+    return; 
   
-  if(dir == Vertical) //vertical
+  if(redraw)
   {
-    uint16_t prealloted = 0;
-    uint16_t sizeablecount = 0;
-    for(uint16_t i=0;i<count;i++)
+    if(dir == Vertical) //vertical
     {
-      switch(elements[i]->sizing)
+      uint16_t prealloted = 0;
+      uint16_t sizeablecount = 0;
+      for(uint16_t i=0;i<count;i++)
       {
-        case Fill:
-          sizeablecount++;
-          break;
-        case Wrap:
-          // Get and update element's size
-          std::pair<uint16_t,uint16_t> s = (elements[i]->size=elements[i]->getsize());
-          // Count the wrapped element as prealloted
-          prealloted+=s.second;
-          break;
+        switch(elements[i]->sizing)
+        {
+          case Fill:
+            sizeablecount++;
+            break;
+          case Wrap:
+            // Get and update element's size
+            std::pair<uint16_t,uint16_t> s = (elements[i]->size=elements[i]->getsize());
+            // Count the wrapped element as prealloted
+            prealloted+=s.second;
+            break;
+        }
+      }
+      for(uint16_t y = pos.second,i=0;i<count;i++)
+      {
+        // TODO add all of the other sizing methods
+        elements[i]->pos={pos.first,y}; //update position
+        switch(elements[i]->sizing)
+        {
+          case Fill:
+            elements[i]->size={size.first,(size.second-prealloted)/sizeablecount}; //update size
+            y+=elements[i]->size.second;
+            break;
+          case Wrap:
+            elements[i]->size.first=size.first; //update size
+            y+=elements[i]->size.second;
+            break;
+        }
+        elements[i]->redraw=true;
+        elements[i]->draw();
       }
     }
-    for(uint16_t y = pos.second,i=0;i<count;i++)
+    else //horizontal
     {
-      // TODO add all of the other sizing methods
-      elements[i]->pos={pos.first,y}; //update position
-      switch(elements[i]->sizing)
+      uint16_t prealloted = 0;
+      uint16_t sizeablecount = 0;
+      for(uint16_t i=0;i<count;i++)
       {
-        case Fill:
-          elements[i]->size={size.first,(size.second-prealloted)/sizeablecount}; //update size
-          y+=elements[i]->size.second;
-          break;
-        case Wrap:
-          elements[i]->size.first=size.first; //update size
-          y+=elements[i]->size.second;
-          break;
+        switch(elements[i]->sizing)
+        {
+          case Fill:
+            sizeablecount++;
+            break;
+          case Wrap:
+            // Get and update element's size
+            std::pair<uint16_t,uint16_t> s = (elements[i]->size=elements[i]->getsize());
+            // Count the wrapped element as prealloted
+            prealloted+=s.first;
+            break;
+        }
       }
-      //elements[i]->size={size.first,size.second/count}; //update size
-      elements[i]->draw();
+      for(uint16_t x = pos.first,i=0;i<count;i++)
+      {
+        // TODO add all of the other sizing methods
+        elements[i]->pos={x,pos.second}; //update position
+        switch(elements[i]->sizing)
+        {
+          case Fill:
+            elements[i]->size={(size.first-prealloted)/sizeablecount,size.second}; //update size
+            x+=(size.first-prealloted)/sizeablecount;
+            break;
+          case Wrap:
+            elements[i]->size.second=size.second; //update size
+            x+=elements[i]->size.first;
+            break;
+        }
+        elements[i]->redraw=true;
+        elements[i]->draw();
+      }
     }
+    redraw=false;
   }
-  else //horizontal
+  else
   {
-    uint16_t prealloted = 0;
-    uint16_t sizeablecount = 0;
-    for(uint16_t i=0;i<count;i++)
+    for(UIElement* el : elements)
     {
-      switch(elements[i]->sizing)
-      {
-        case Fill:
-          sizeablecount++;
-          break;
-        case Wrap:
-          // Get and update element's size
-          std::pair<uint16_t,uint16_t> s = (elements[i]->size=elements[i]->getsize());
-          // Count the wrapped element as prealloted
-          prealloted+=s.first;
-          break;
-      }
-    }
-    for(uint16_t x = pos.first,i=0;i<count;i++)
-    {
-      // TODO add all of the other sizing methods
-      elements[i]->pos={x,pos.second}; //update position
-      switch(elements[i]->sizing)
-      {
-        case Fill:
-          elements[i]->size={(size.first-prealloted)/sizeablecount,size.second}; //update size
-          x+=(size.first-prealloted)/sizeablecount;
-          break;
-        case Wrap:
-          elements[i]->size.second=size.second; //update size
-          x+=elements[i]->size.first;
-          break;
-      }
-      elements[i]->draw();
+      el->draw();
     }
   }
 }
