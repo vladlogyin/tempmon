@@ -11,7 +11,7 @@ all: tempmon
 tempmon: tempmon.o tempui.o
 
 clean:
-	-rm *.o
+	-rm *.o tempmon
 
 lines:
 	@echo "$(shell wc -l *.* | tail -n1) lines of code" 
