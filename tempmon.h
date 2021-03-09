@@ -45,20 +45,20 @@ public:
   Client(std::string);
   
   // int filedescriptor
-  void StartThread(int);
-  void StartThread();
+  void StartThread(int, std::shared_ptr<Client>);
+  void StartThread(std::shared_ptr<Client>);
   
   // Client handles
-  std::function<void(Client*)> connected;
-  std::function<void(Client*)> updated;
-  std::function<void(Client*)> disconnected;
+  std::function<void(std::shared_ptr<Client>)> connected;
+  std::function<void(std::shared_ptr<Client>)> updated;
+  std::function<void(std::shared_ptr<Client>)> disconnected;
   
   
 //private:
   //static int nextid=0;
 };
 
-std::vector<Client> clients;
+std::vector<std::shared_ptr<Client>> clients;
 
 UIDiv* rootdiv;
 
@@ -69,10 +69,10 @@ void broadcastHandler();
 
 void listenerHandler();
 
-void clientHandler(Client&);
+void clientHandler(std::shared_ptr<Client>);
 
 
 bool updatedisplay;
-void handleClientDisconnect(Client*);
-void handleClientUpdate(Client*);
-void handleClientConnect(Client*);
+void handleClientDisconnect(std::shared_ptr<Client>);
+void handleClientUpdate(std::shared_ptr<Client>);
+void handleClientConnect(std::shared_ptr<Client>);
