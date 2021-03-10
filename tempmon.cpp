@@ -30,8 +30,14 @@ int main()
   
   //UIBar* bar = new UIBar();
   
-  rootdiv= new UIDiv(
-    {0,0},{60,16},Horizontal,{});
+  // Get terminal size
+  int width = 10;
+  int height = 10;
+  getmaxyx(stdscr, height, width);
+  
+  
+  rootdiv = new UIDiv(
+    {0,0},{width,height},Horizontal,{});
   rootdiv->draw();
   
   /*printw("Hello World");
