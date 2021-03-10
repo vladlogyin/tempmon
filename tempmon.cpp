@@ -19,6 +19,7 @@ int main()
   std::thread broadcastThread(broadcastHandler);
   std::thread listenerThread(listenerHandler);
   
+  // Initialize screen and color pairs
   noecho();
   initscr();
   start_color();
@@ -35,7 +36,7 @@ int main()
   int height = 10;
   getmaxyx(stdscr, height, width);
   
-  
+  // Initialize root UI element
   rootdiv = new UIDiv(
     {0,0},{width,height},Horizontal,{});
   rootdiv->draw();
@@ -223,8 +224,16 @@ void clientHandler(std::shared_ptr<Client> client)
       while((bufsize = read(client->fd, buff, 1))<0);
       switch(buff[0])
       {
+        case 0x79: // 4 byte client UID
+          bufsize=read(client->fd, buff, 4);
+          // Convert byte array back to an int (little endian)
+          client->UID=buff[3] + ((uint32_t)buff[2]<<8) + ((uint32_t)buff[1]<<16) + ((uint32_t)buff[0]<<24);
+#ifdef DEBUG
+          std::cout << std::to_string(buff[0]) << std::to_string(buff[1]) << std::to_string(buff[2]) << std::to_string(buff[3]) << " client UID"<< std::to_string(client->UID)<<std::endl;
+#endif
+          break;
         case 0x80: // Number of parameters
-          bufsize=read(client->fd, buff, 1);      
+          bufsize=read(client->fd, buff, 1);
           client->propertycount = buff[0];
           break;
         case 0x81: // Length of parameter name
@@ -258,7 +267,15 @@ void clientHandler(std::shared_ptr<Client> client)
       
     }
   }
-  
+  if(client->UID)
+  {
+    std::ostringstream oss;
+    oss << std::hex << client->UID;
+    client->name = "sen69"+oss.str();
+    //client->name = "sen"+std::to_string(client->UID);
+  }
+    
+    
   client->connected(client);
   
   // Set socket to nonblocking
@@ -358,8 +375,9 @@ void handleClientUpdate(std::shared_ptr<Client> c)
 }
 void handleClientConnect(std::shared_ptr<Client> c)
 {
-  rootdiv->elements.push_back(new UIDiv(Vertical,{new UILabel(c->name,1),new UIFrame(new UIDiv(Horizontal,{ new UILabel(c->propertynames[0] + ": ",1), (label=new UILabel(std::to_string(c->propertyvalues[0]),1))}), Fill)}));
+  rootdiv->elements.push_back(new UIDiv(Vertical,{new UILabel(std::to_string(c->UID),1),new UIFrame(new UIDiv(Horizontal,{ new UILabel(c->propertynames[0] + ": ",1), (label=new UILabel(std::to_string(c->propertyvalues[0]),1))}), Fill)}));
   updatedisplay=true;
+  rootdiv->redraw=true;
   rootdiv->draw();
   refresh();
 }

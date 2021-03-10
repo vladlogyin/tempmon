@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include <string>
+#include <sstream>
 #include <utility>
 #include <functional>
 
@@ -32,6 +33,7 @@ int nextid=0;
 class Client {
 public:
   int id;
+  uint32_t UID=0;
   std::string name;
   
   int fd;
