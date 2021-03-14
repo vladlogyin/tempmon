@@ -6,7 +6,7 @@
 
 int main()
 {
-  std::cout << "tempmon\n";
+  std::cout << "tempmon" << std::endl;
 
   running = true;
   
@@ -246,7 +246,7 @@ void clientHandler(std::shared_ptr<Client> client)
           client->propertyvalues.emplace_back();
           client->propertynames.back().assign((char*)buff, bufsize);
 #ifdef DEBUG
-          std::cout << client.propertynames.back() << std::endl;
+          std::cout << client->propertynames.back() << std::endl;
 #endif
           break;
         case 0x82: // Clear parameter list
@@ -262,7 +262,7 @@ void clientHandler(std::shared_ptr<Client> client)
     if(!done)
     {
 #ifdef DEBUG
-      std::cout<< "failed to get description";
+      std::cout<< "failed to get description"<<std::endl;
 #endif
       
     }
@@ -271,8 +271,7 @@ void clientHandler(std::shared_ptr<Client> client)
   {
     std::ostringstream oss;
     oss << std::hex << client->UID;
-    client->name = "sen69"+oss.str();
-    //client->name = "sen"+std::to_string(client->UID);
+    client->name = "sen"+oss.str();
   }
     
     
@@ -309,12 +308,18 @@ void clientHandler(std::shared_ptr<Client> client)
     }
     
     // Exit if connection closed
-    if(bufsize == 0)
-      break;
     // Wait until buffer has sufficient data
-    while(((bufsize=recv(client->fd, buff, client->propertycount * sizeof(float)+1,MSG_PEEK))<(ssize_t)(client->propertycount * sizeof(float)))&&bufsize!=0)
+    int peeks=0;
+    do
+    {
+      peeks++;
+      if(peeks > 10)
+        break;
+      //std::cout<<"bufsize="<<bufsize<<std::endl;
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-     
+    }while((bufsize=recv(client->fd, buff, client->propertycount * sizeof(float)+1, MSG_PEEK))<(ssize_t)(client->propertycount * sizeof(float)));
+    if(bufsize == 0 || peeks > 10)
+      break;
   }
   
   client->disconnected(client);
@@ -354,15 +359,18 @@ void drawBar(uint16_t x, uint16_t y, uint16_t l)
 UILabel* label;
 void handleClientDisconnect(std::shared_ptr<Client> c)
 {
+  //std::cout<<"disconnecting client"<<std::endl;
   // look for div belonging to client
   for(int i=0; i < rootdiv->elements.size(); i++)
   {
     //TODO broken
-//     if(((UILabel*)(((UIDiv*)(rootdiv->elements[i]))->elements[0]))->text==c->name)
-//     {
-//       rootdiv->elements.erase(rootdiv->elements.begin()+i);
-//       break;
-//     }
+    if(rootdiv->elements[i]->id==c->UID)
+    {
+        //std::cout<<"client element found"<<std::endl;
+      //delete rootdiv->elements[i]
+      rootdiv->elements.erase(rootdiv->elements.begin()+i);
+      break;
+    }
   }
 }
 bool updateturn=false;
@@ -370,12 +378,15 @@ void handleClientUpdate(std::shared_ptr<Client> c)
 {
   label->settext(std::to_string(c->propertyvalues[0]));
   label->color = (updateturn = !updateturn)?1:2;
+  
+  rootdiv->redraw=true;
   rootdiv->draw();
   refresh();
 }
 void handleClientConnect(std::shared_ptr<Client> c)
 {
   rootdiv->elements.push_back(new UIDiv(Vertical,{new UILabel(std::to_string(c->UID),1),new UIFrame(new UIDiv(Horizontal,{ new UILabel(c->propertynames[0] + ": ",1), (label=new UILabel(std::to_string(c->propertyvalues[0]),1))}), Fill)}));
+  rootdiv->elements.back()->id = c->UID;
   updatedisplay=true;
   rootdiv->redraw=true;
   rootdiv->draw();
