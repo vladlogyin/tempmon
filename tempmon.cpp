@@ -19,6 +19,11 @@ int main()
   std::thread broadcastThread(broadcastHandler);
   std::thread listenerThread(listenerHandler);
   
+#ifdef TEMPMON_GTK
+  auto app =Gtk::Application::create("org.tempmon.test");
+  TempmonWindow win;
+  app->run(win);
+#endif
 #ifdef TEMPMON_CLI
   // Initialize screen and color pairs
   noecho();
@@ -41,27 +46,13 @@ int main()
   rootdiv = new UIDiv(
     {0,0},{width,height},Horizontal,{});
   rootdiv->draw();
-#endif
-  /*printw("Hello World");
-  noecho();
-  for(int i=0;i<10;i++)
-  {
-    mvaddch(0,i,'#');
-    refresh();
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  }*/
   refresh();
-  
-  //while(running)
-  //{
-    
-  //}
+#endif
   
   while(getchar()!='e')
   {
     
   }
-  
   
 #ifdef DEBUG
   std::cout << "Stopping"<< std::endl;
@@ -76,8 +67,10 @@ int main()
   {
     c->thread.join();
   }
-  
+
+#ifdef TEMPMON_CLI
   endwin();
+#endif
   
   return 0;
 }
@@ -357,7 +350,9 @@ void drawBar(uint16_t x, uint16_t y, uint16_t l)
   
 }
 
+#ifdef TEMPMON_CLI
 UILabel* label;
+#endif
 void handleClientDisconnect(std::shared_ptr<Client> c)
 {
   //std::cout<<"disconnecting client"<<std::endl;

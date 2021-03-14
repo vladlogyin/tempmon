@@ -1,16 +1,16 @@
-
-#CXXFLAGS= -I. -g -std=c++14 -lpthread -Wall -lmenu -lncurses -ltinfo
 CXXFLAGS= -I. -std=c++14 -Wall
 CXXFLAGS+= -g
+CXXFLAGS+= $(shell pkgconf gtkmm-3.0 glibmm-2.4 --cflags)
 #UI selection
-CXXFLAGS+= -DTEMPMON_CLI
+#CXXFLAGS+= -DTEMPMON_CLI
+CXXFLAGS+= -DTEMPMON_GTK
 
-LDFLAGS= -lmenu -lncurses -ltinfo -lpthread -lstdc++
+LDFLAGS= -lmenu -lncurses -ltinfo -lpthread -lstdc++ $(shell pkgconf gtkmm-3.0 glibmm-2.4 --libs)
 LDFLAGS+= -g
 
 all: tempmon
 
-tempmon: tempmon.o tempmon-cli.o
+tempmon: tempmon.o tempmon-cli.o tempmon-gtk.o
 
 clean:
 	-rm *.o tempmon

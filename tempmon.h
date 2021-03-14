@@ -18,10 +18,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <curses.h>
-#include <menu.h>
+#ifdef TEMPMON_GTK
+#include <tempmon-gtk.h>
+#endif
 
+#ifdef TEMPMON_CLI
 #include <tempmon-cli.h>
+#endif
 
 #define VERSION 1
 #define BCPORT 9988
