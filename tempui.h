@@ -25,7 +25,8 @@ public:
   UIElement(int);
   
   std::pair<uint16_t,uint16_t> pos, size;
-  
+
+  uint32_t id;
   
   int color;
   UISize sizing;
