@@ -19,6 +19,7 @@ int main()
   std::thread broadcastThread(broadcastHandler);
   std::thread listenerThread(listenerHandler);
   
+#ifdef TEMPMON_CLI
   // Initialize screen and color pairs
   noecho();
   initscr();
@@ -40,7 +41,7 @@ int main()
   rootdiv = new UIDiv(
     {0,0},{width,height},Horizontal,{});
   rootdiv->draw();
-  
+#endif
   /*printw("Hello World");
   noecho();
   for(int i=0;i<10;i++)
@@ -360,6 +361,7 @@ UILabel* label;
 void handleClientDisconnect(std::shared_ptr<Client> c)
 {
   //std::cout<<"disconnecting client"<<std::endl;
+#ifdef TEMPMON_CLI
   // look for div belonging to client
   for(int i=0; i < rootdiv->elements.size(); i++)
   {
@@ -372,23 +374,28 @@ void handleClientDisconnect(std::shared_ptr<Client> c)
       break;
     }
   }
+#endif
 }
 bool updateturn=false;
 void handleClientUpdate(std::shared_ptr<Client> c)
 {
+#ifdef TEMPMON_CLI
   label->settext(std::to_string(c->propertyvalues[0]));
   label->color = (updateturn = !updateturn)?1:2;
   
   rootdiv->redraw=true;
   rootdiv->draw();
   refresh();
+#endif
 }
 void handleClientConnect(std::shared_ptr<Client> c)
 {
+#ifdef TEMPMON_CLI
   rootdiv->elements.push_back(new UIDiv(Vertical,{new UILabel(std::to_string(c->UID),1),new UIFrame(new UIDiv(Horizontal,{ new UILabel(c->propertynames[0] + ": ",1), (label=new UILabel(std::to_string(c->propertyvalues[0]),1))}), Fill)}));
   rootdiv->elements.back()->id = c->UID;
   updatedisplay=true;
   rootdiv->redraw=true;
   rootdiv->draw();
   refresh();
+#endif
 }

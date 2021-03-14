@@ -21,7 +21,7 @@
 #include <curses.h>
 #include <menu.h>
 
-#include <tempui.h>
+#include <tempmon-cli.h>
 
 #define VERSION 1
 #define BCPORT 9988
@@ -62,8 +62,9 @@ public:
 
 std::vector<std::shared_ptr<Client>> clients;
 
+#ifdef TEMPMON_CLI
 UIDiv* rootdiv;
-
+#endif
 
 bool running;
 
