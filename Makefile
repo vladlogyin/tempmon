@@ -10,7 +10,7 @@ LDFLAGS+= -g
 
 all: tempmon
 
-tempmon: tempmon.o tempmon-cli.o
+tempmon: tempmon.o tempmon-cli.o client.o
 
 clean:
 	-rm *.o tempmon

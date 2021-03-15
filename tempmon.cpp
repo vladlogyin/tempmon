@@ -186,12 +186,12 @@ void listenerHandler()
 #endif
       
       // Accept incoming connections
-      clients.push_back(std::shared_ptr<Client>(new Client("asd")));
+      clients.push_back(std::make_shared<Client>("asd"));
       clients.back()->connected= handleClientConnect;
       clients.back()->updated= handleClientUpdate;
       clients.back()->disconnected= handleClientDisconnect;
       
-      clients.back()->StartThread(new_socket, clients.back());
+      clients.back()->StartThread(new_socket);
     }
     std::this_thread::sleep_for(std::chrono::seconds(2));
   }
@@ -200,164 +200,17 @@ void listenerHandler()
 #endif
 }
 
-void clientHandler(std::shared_ptr<Client> client)
-{
-#ifdef DEBUG
-  std::cout << "Spawned thread " << std::this_thread::get_id() << std::endl;
-#endif
-  
-  // Send handshake message
-  uint8_t message[] = {'\n','t','e','m','p','m','o','n','a','s','d','f','v'};
-  message[12] = VERSION;
-  send(client->fd, message, sizeof(message), 0);
-  
-  // Create rx buffer
-  uint8_t buff[64*1024];
-  int bufsize;
-  
-  // Receive client description
-  {
-    bool done = false;
-    for(int i=0;i<20 && !done;i++)
-    {
-      //TODO make socket non-blocking and add some sort of timeout
-      // Read opcode
-      while((bufsize = read(client->fd, buff, 1))<0);
-      switch(buff[0])
-      {
-        case 0x79: // 4 byte client UID
-          bufsize=read(client->fd, buff, 4);
-          // Convert byte array back to an int (little endian)
-          client->UID=buff[3] + ((uint32_t)buff[2]<<8) + ((uint32_t)buff[1]<<16) + ((uint32_t)buff[0]<<24);
-#ifdef DEBUG
-          std::cout << std::to_string(buff[0]) << std::to_string(buff[1]) << std::to_string(buff[2]) << std::to_string(buff[3]) << " client UID"<< std::to_string(client->UID)<<std::endl;
-#endif
-          break;
-        case 0x80: // Number of parameters
-          bufsize=read(client->fd, buff, 1);
-          client->propertycount = buff[0];
-          break;
-        case 0x81: // Length of parameter name
-          bufsize=read(client->fd, buff, 1);
-          {
-            int namesize = buff[0];
-            bufsize=read(client->fd,buff,namesize);
-          }
-          client->propertynames.emplace_back();
-          client->propertyvalues.emplace_back();
-          client->propertynames.back().assign((char*)buff, bufsize);
-#ifdef DEBUG
-          std::cout << client->propertynames.back() << std::endl;
-#endif
-          break;
-        case 0x82: // Clear parameter list
-          client->propertycount=0;
-          client->propertynames.clear();
-          client->propertyvalues.clear();
-          break;
-        case 0x89:
-          done=true;
-          break;
-      }
-    }
-    if(!done)
-    {
-#ifdef DEBUG
-      std::cout<< "failed to get description"<<std::endl;
-#endif
-      
-    }
-  }
-  if(client->UID)
-  {
-    std::ostringstream oss;
-    oss << std::hex << client->UID;
-    client->name = "sen"+oss.str();
-  }
-    
-    
-  client->connected(client);
-  
-  // Set socket to nonblocking
-  fcntl(client->fd, F_SETFL, O_NONBLOCK);
-  
-  
-  // Enter client loop
-  int retries=0;
-  while(running && retries<10)
-  {
-    retries++;
-    while((bufsize = read(client->fd, buff, client->propertycount * sizeof(float))) > 0)
-    {
-#ifdef DEBUG
-      std::cout<< "read: " << bufsize << std::endl;
-#endif
-      if((size_t)bufsize == client->propertycount * sizeof(float))
-      {
-        // Reset timeout loop
-        retries = 0;
-        for(int prop = 0; prop < client->propertycount; prop++)
-        {
-          client->propertyvalues[prop] = (float&)buff[prop*sizeof(float)];
-#ifdef DEBUG
-          std::cout << client->propertynames[prop] << ": " << client->propertyvalues[prop] << std::endl;
-#endif
-        }
-        
-          client->updated(client);
-      }
-    }
-    
-    // Exit if connection closed
-    // Wait until buffer has sufficient data
-    int peeks=0;
-    do
-    {
-      peeks++;
-      if(peeks > 10)
-        break;
-      //std::cout<<"bufsize="<<bufsize<<std::endl;
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }while((bufsize=recv(client->fd, buff, client->propertycount * sizeof(float)+1, MSG_PEEK))<(ssize_t)(client->propertycount * sizeof(float)));
-    if(bufsize == 0 || peeks > 10)
-      break;
-  }
-  
-  client->disconnected(client);
-
-#ifdef DEBUG
-  std::cout << "Exited thread " << std::this_thread::get_id() << std::endl;
-#endif
-}
-
-Client::Client(std::string name)
-{
-  this->name = "sens"+std::to_string(nextid);
-  this->propertyvalues = std::vector<float>();
-  this->propertynames = std::vector<std::string>();
-  this->id = nextid++;
-}
-
-void Client::StartThread(int fd,std::shared_ptr<Client> c)
-{
-  this->fd = fd;
-  StartThread(c);
-  //return this->StartThread();
-}
-
-
-void Client::StartThread(std::shared_ptr<Client> c)
-{
-  thread = std::thread(clientHandler, c);
-  //return thread;
-}
 
 void drawBar(uint16_t x, uint16_t y, uint16_t l)
 {
   
 }
 
+#ifdef TEMPMON_CLI
+//TODO this only updates the last connected client
+// probably a hashtable with label values keyed by client UIDs
 UILabel* label;
+#endif
 void handleClientDisconnect(std::shared_ptr<Client> c)
 {
   //std::cout<<"disconnecting client"<<std::endl;
@@ -393,7 +246,6 @@ void handleClientConnect(std::shared_ptr<Client> c)
 #ifdef TEMPMON_CLI
   rootdiv->elements.push_back(new UIDiv(Vertical,{new UILabel(std::to_string(c->UID),1),new UIFrame(new UIDiv(Horizontal,{ new UILabel(c->propertynames[0] + ": ",1), (label=new UILabel(std::to_string(c->propertyvalues[0]),1))}), Fill)}));
   rootdiv->elements.back()->id = c->UID;
-  updatedisplay=true;
   rootdiv->redraw=true;
   rootdiv->draw();
   refresh();
