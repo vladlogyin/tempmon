@@ -3,7 +3,10 @@
 // running = false then join all threads and then exit main thread
 
 //#define DEBUG
-
+#ifdef TEMPMON_GTK
+std::unique_ptr<TempmonWindow> win;
+Glib::RefPtr<Gtk::Application> app;
+#endif
 int main()
 {
   std::cout << "tempmon" << std::endl;
@@ -20,9 +23,11 @@ int main()
   std::thread listenerThread(listenerHandler);
   
 #ifdef TEMPMON_GTK
-  auto app =Gtk::Application::create("org.tempmon.test");
-  TempmonWindow win;
-  app->run(win);
+  app = Gtk::Application::create("org.tempmon.test");
+  win = std::make_unique<TempmonWindow>();
+
+  std::thread windowthread([]{ app->run(*win);std::cout<<"window closed"<<std::endl;});
+  windowthread.join();
 #endif
 #ifdef TEMPMON_CLI
   // Initialize screen and color pairs
@@ -47,12 +52,12 @@ int main()
     {0,0},{width,height},Horizontal,{});
   rootdiv->draw();
   refresh();
-#endif
-  
+    
   while(getchar()!='e')
   {
     
   }
+#endif
   
 #ifdef DEBUG
   std::cout << "Stopping"<< std::endl;
@@ -65,6 +70,7 @@ int main()
   
   for(std::shared_ptr<Client> c : clients)
   {
+    c->linked=false;
     c->thread.join();
   }
 
@@ -206,7 +212,9 @@ UILabel* label;
 #endif
 void handleClientDisconnect(std::shared_ptr<Client> c)
 {
-  //std::cout<<"disconnecting client"<<std::endl;
+#ifdef TEMPMON_GTK
+  win->deleteNode(c);
+#endif
 #ifdef TEMPMON_CLI
   // look for div belonging to client
   for(int i=0; i < rootdiv->elements.size(); i++)
@@ -225,6 +233,9 @@ void handleClientDisconnect(std::shared_ptr<Client> c)
 bool updateturn=false;
 void handleClientUpdate(std::shared_ptr<Client> c)
 {
+#ifdef TEMPMON_GTK
+  win->updateNode(c);
+#endif
 #ifdef TEMPMON_CLI
   label->settext(std::to_string(c->propertyvalues[0]));
   label->color = (updateturn = !updateturn)?1:2;
@@ -236,6 +247,9 @@ void handleClientUpdate(std::shared_ptr<Client> c)
 }
 void handleClientConnect(std::shared_ptr<Client> c)
 {
+#ifdef TEMPMON_GTK
+  win->addNode(c);
+#endif
 #ifdef TEMPMON_CLI
   rootdiv->elements.push_back(new UIDiv(Vertical,{new UILabel(std::to_string(c->UID),1),new UIFrame(new UIDiv(Horizontal,{ new UILabel(c->propertynames[0] + ": ",1), (label=new UILabel(std::to_string(c->propertyvalues[0]),1))}), Fill)}));
   rootdiv->elements.back()->id = c->UID;
