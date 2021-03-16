@@ -16,4 +16,4 @@ clean:
 	-rm *.o tempmon
 
 lines:
-	@echo "$(shell wc -l *.* | tail -n1) lines of code" 
+	@echo "$(shell wc -l *.cpp *.h | tail -n1) lines of code" 
